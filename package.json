@@ -26,5 +26,8 @@
     "ssdp-js": "^1.0.1",
     "thunky": "^0.1.0",
     "upnp-mediarenderer-client": "^1.2.2"
+  },
+  "devDependencies": {
+    "standard": "^6.0.8"
   }
 }
