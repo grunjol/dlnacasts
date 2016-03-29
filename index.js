@@ -2,6 +2,7 @@ var MediaRenderer = require('upnp-mediarenderer-client')
 var debug = require('debug')('dlnacasts')
 var events = require('events')
 var mime = require('mime')
+var async = require('async')
 
 var SSDP
 try {
@@ -101,7 +102,24 @@ module.exports = function () {
 
     player.status = function (cb) {
       if (!cb) cb = noop
-      cb()
+      async.parallel({
+        currentTime: function(callback) {
+          player.client.getPosition(function (err, position) {
+            callback(err, position)
+          })
+        },
+        volume: function(callback) {
+          var params = {
+            InstanceID: player.client.instanceId,
+            Channel: 'Master'
+          };
+          player.client.callAction('RenderingControl', 'GetVolume', params, callback)
+        }
+      },
+      function(err, results) {
+        cb(err, results)
+      });
+
     }
 
     player.volume = function (vol, cb) {
