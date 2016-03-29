@@ -34,8 +34,8 @@ module.exports = function () {
         player.emit('error', err)
       })
 
-      client.on('status', function (err) {
-        player.emit('status', err)
+      client.on('status', function (status) {
+        player.emit('status', status)
       })
 
       client.on('loading', function (err) {
@@ -106,7 +106,12 @@ module.exports = function () {
 
     player.volume = function (vol, cb) {
       if (!cb) cb = noop
-      // TODO: make volume
+      var params = {
+        InstanceID: player.instanceId,
+        Channel: 'Master',
+        DesiredVolume: (100 * vol)|0
+      };
+      player.callAction('RenderingControl', 'SetVolume', params, cb)
     }
 
     player.request = function (data, cb) {
