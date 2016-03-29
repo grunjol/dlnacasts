@@ -107,11 +107,11 @@ module.exports = function () {
     player.volume = function (vol, cb) {
       if (!cb) cb = noop
       var params = {
-        InstanceID: player.instanceId,
+        InstanceID: player.client.instanceId,
         Channel: 'Master',
         DesiredVolume: (100 * vol)|0
       };
-      player.callAction('RenderingControl', 'SetVolume', params, cb)
+      player.client.callAction('RenderingControl', 'SetVolume', params, cb)
     }
 
     player.request = function (data, cb) {
