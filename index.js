@@ -36,7 +36,9 @@ module.exports = function () {
       })
 
       client.on('status', function (status) {
-        player.emit('status', status)
+        if (status.TransportState === 'PLAYING') player._status.playerState = 'PLAYING'
+        if (status.TransportState === 'PAUSED_PLAYBACK') player._status.playerState = 'PAUSED'
+        player.emit('status', player._status)
       })
 
       client.on('loading', function (err) {
@@ -51,9 +53,17 @@ module.exports = function () {
       cb(null, player.client)
     })
 
+    var parseTime = function (time) {
+      if (!time || time.indexOf(':') === -1) return 0
+      var parts = time.split(':').map(Number)
+      return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    }
+
     player.name = cst.name
     player.host = cst.host
     player.xml = cst.xml
+    player._status = {}
+    player.MAX_VOLUME = 100
 
     player.play = function (url, opts, cb) {
       if (typeof opts === 'function') return player.play(url, null, opts)
@@ -103,23 +113,38 @@ module.exports = function () {
     player.status = function (cb) {
       if (!cb) cb = noop
       async.parallel({
-        currentTime: function(callback) {
-          player.client.getPosition(function (err, position) {
-            callback(err, position)
+        currentTime: function (acb) {
+          var params = {
+            InstanceID: player.client.instanceId
+          }
+          player.client.callAction('AVTransport', 'GetPositionInfo', params, function (err, res) {
+            if (err) return
+            var position = parseTime(res.AbsTime) | parseTime(res.RelTime)
+            acb(null, position)
           })
         },
-        volume: function(callback) {
-          var params = {
-            InstanceID: player.client.instanceId,
-            Channel: 'Master'
-          };
-          player.client.callAction('RenderingControl', 'GetVolume', params, callback)
+        volume: function (acb) {
+          player._volume(acb)
         }
       },
-      function(err, results) {
-        cb(err, results)
-      });
+      function (err, results) {
+        debug('%o', results)
+        player._status.currentTime = results.currentTime
+        player._status.volume = {level: results.volume / (player.MAX_VOLUME)}
+        return cb(err, player._status)
+      })
+    }
 
+    player._volume = function (cb) {
+      var params = {
+        InstanceID: player.client.instanceId,
+        Channel: 'Master'
+      }
+      player.client.callAction('RenderingControl', 'GetVolume', params, function (err, res) {
+        if (err) return
+        var volume = res.CurrentVolume ? parseInt(res.CurrentVolume) : 0
+        cb(null, volume)
+      })
     }
 
     player.volume = function (vol, cb) {
@@ -127,19 +152,36 @@ module.exports = function () {
       var params = {
         InstanceID: player.client.instanceId,
         Channel: 'Master',
-        DesiredVolume: (100 * vol)|0
-      };
+        DesiredVolume: (player.MAX_VOLUME * vol) | 0
+      }
       player.client.callAction('RenderingControl', 'SetVolume', params, cb)
     }
 
-    player.request = function (data, cb) {
+    player.request = function (target, action, data, cb) {
       if (!cb) cb = noop
-      // TODO: make request
+      player.client.callAction(target, action, data, cb)
     }
 
     player.seek = function (time, cb) {
       if (!cb) cb = noop
       player.client.seek(time, cb)
+    }
+
+    player._detectVolume = function (cb) {
+      if (!cb) cb = noop
+      player._volume(function (err, currentVolume) {
+        if (err) cb(err)
+        player.volume(player.MAX_VOLUME, function (err) {
+          if (err) cb(err)
+          player._volume(function (err, maxVolume) {
+            if (err) cb(err)
+            player.MAX_VOLUME = maxVolume
+            player.volume(currentVolume, function (err) {
+              cb(err, maxVolume)
+            })
+          })
+        })
+      })
     }
 
     that.players.push(player)
