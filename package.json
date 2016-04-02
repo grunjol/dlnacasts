@@ -24,6 +24,7 @@
   "homepage": "https://github.com/grunjol/dlnacasts#readme",
   "dependencies": {
     "async": "^2.0.0-rc.2",
+    "debug": "^2.1.3",
     "ssdp-js": "^1.0.1",
     "thunky": "^0.1.0",
     "upnp-mediarenderer-client": "^1.2.2"
