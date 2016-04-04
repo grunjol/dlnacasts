@@ -2,7 +2,7 @@ var MediaRenderer = require('upnp-mediarenderer-client')
 var debug = require('debug')('dlnacasts')
 var events = require('events')
 var mime = require('mime')
-var async = require('async')
+var parallel = require('run-parallel')
 
 var SSDP
 try {
@@ -112,7 +112,7 @@ module.exports = function () {
 
     player.status = function (cb) {
       if (!cb) cb = noop
-      async.parallel({
+      parallel({
         currentTime: function (acb) {
           var params = {
             InstanceID: player.client.instanceId
