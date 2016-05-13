@@ -1,12 +1,14 @@
 var MediaRenderer = require('upnp-mediarenderer-client')
 var debug = require('debug')('dlnacasts')
 var events = require('events')
+var get = require('simple-get')
 var mime = require('mime')
 var parallel = require('run-parallel')
+var parseString = require('xml2js').parseString
 
 var SSDP
 try {
-  SSDP = require('ssdp-js')
+  SSDP = require('node-ssdp').Client
 } catch (err) {
   SSDP = null
 }
@@ -189,23 +191,43 @@ module.exports = function () {
   }
 
   if (ssdp) {
-    ssdp.onDevice(function (device) {
-      debug('DLNA device %j', device)
-      device.host = device.address
+    ssdp.on('response', function (headers, statusCode, info) {
+      if (!headers.LOCATION) return
 
-      var name = device.name
-      if (!name) return
+      get.concat(headers.LOCATION, function (err, res, body) {
+        if (err) return
+        parseString(body.toString(), {explicitArray: false, explicitRoot: false},
+          function (err, service) {
+            if (err) return
+            if (!service.device) return
 
-      if (!casts[name] || (casts[name] && !casts[name].host)) {
-        casts[name] = device
-        return emit(casts[name])
-      }
+            debug('device %j', service.device)
+
+            var name = service.device.friendlyName
+
+            if (!name) return
+
+            var host = info.address
+            var xml = headers.LOCATION
+
+            if (!casts[name]) {
+              casts[name] = {name: name, host: host, xml: xml}
+              return emit(casts[name])
+            }
+
+            if (casts[name] && !casts[name].host) {
+              casts[name].host = host
+              casts[name].xml = xml
+              emit(casts[name])
+            }
+          })
+      })
     })
   }
 
   that.update = function () {
     debug('querying ssdp')
-    if (ssdp) ssdp.start()
+    if (ssdp) ssdp.search('urn:schemas-upnp-org:device:MediaRenderer:1')
   }
 
   that.destroy = function () {
