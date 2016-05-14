@@ -125,6 +125,16 @@ module.exports = function () {
             acb(null, position)
           })
         },
+        Duration: function (acb) {
+          var params = {
+            InstanceID: player.client.instanceId
+          }
+          player.client.callAction('AVTransport', 'GetMediaInfo', params, function (err, res) {
+            if (err) return
+            var MediaDuration = parseTime(res.MediaDuration)
+            acb(null, MediaDuration)
+          })
+        },
         volume: function (acb) {
           player._volume(acb)
         }
@@ -132,6 +142,7 @@ module.exports = function () {
       function (err, results) {
         debug('%o', results)
         player._status.currentTime = results.currentTime
+        player._status.duration = results.Duration
         player._status.volume = {level: results.volume / (player.MAX_VOLUME)}
         return cb(err, player._status)
       })
