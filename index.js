@@ -64,6 +64,7 @@ module.exports = function () {
     player.name = cst.name
     player.host = cst.host
     player.xml = cst.xml
+    player.udn = cst.udn
     player._status = {}
     player.MAX_VOLUME = 100
 
@@ -209,16 +210,18 @@ module.exports = function () {
 
             var host = info.address
             var xml = headers.LOCATION
+            var udn = service.device.UDN
 
-            if (!casts[name]) {
-              casts[name] = {name: name, host: host, xml: xml}
-              return emit(casts[name])
+            if (!casts[udn]) {
+              casts[udn] = {name: name, host: host, xml: xml, udn: udn}
+              return emit(casts[udn])
             }
 
-            if (casts[name] && !casts[name].host) {
-              casts[name].host = host
-              casts[name].xml = xml
-              emit(casts[name])
+            if (casts[udn] && !casts[udn].host) {
+              casts[udn].name = name
+              casts[udn].host = host
+              casts[udn].xml = xml
+              emit(casts[udn])
             }
           })
       })
