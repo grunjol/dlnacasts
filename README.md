@@ -4,16 +4,16 @@ Query your local network for DLNA media renderers and have them play media
 
 API (and code) based on mafintosh/chromecasts for DLNA
 
-```
-npm install dlnacasts
+```bash
+npm install dlnacasts --save
 ```
 
 ## Usage
 
-``` js
-var dlnacasts = require('dlnacasts')()
+```js
+const dlnacasts = require('dlnacasts')()
 
-dlnacasts.on('update', function (player) {
+dlnacasts.on('update', player => {
   console.log('all players: ', dlnacasts.players)
   player.play('http://example.com/my-video.mp4', {title: 'my video', type: 'video/mp4'})
 })
@@ -38,7 +38,7 @@ Emitted when a new player is found on the local network
 
 Make the player play a url. Options include:
 
-``` js
+```js
 {
   title: 'My movie',
   type: 'video/mp4',
