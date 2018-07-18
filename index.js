@@ -17,10 +17,12 @@ var thunky = require('thunky')
 
 var noop = function () {}
 
-module.exports = function () {
+module.exports = function (opts) {
+  opts = opts || {}
+  var listenPort = opts.listenPort || 0;
   var that = new events.EventEmitter()
   var casts = {}
-  var ssdp = SSDP ? new SSDP() : null
+  var ssdp = SSDP ? new SSDP({unicastBindPort:listenPort}) : null
 
   that.players = []
 
